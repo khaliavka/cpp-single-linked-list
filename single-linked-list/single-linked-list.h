@@ -118,8 +118,7 @@ SingleLinkedList<Type>::BasicIterator<ValueType>::BasicIterator(
 
 template <typename Type>
 template <typename ValueType>
-SingleLinkedList<Type>::BasicIterator<ValueType>&
-SingleLinkedList<Type>::BasicIterator<ValueType>::operator=(
+SingleLinkedList<Type>::BasicIterator<ValueType>& SingleLinkedList<Type>::BasicIterator<ValueType>::operator=(
     const BasicIterator& rhs) = default;
 
 template <typename Type>
@@ -154,6 +153,7 @@ template <typename Type>
 template <typename ValueType>
 SingleLinkedList<Type>::BasicIterator<ValueType>&
 SingleLinkedList<Type>::BasicIterator<ValueType>::operator++() noexcept {
+  assert(node_ != nullptr);
   node_ = node_->next_node;
   return *this;
 }
@@ -170,12 +170,14 @@ SingleLinkedList<Type>::BasicIterator<ValueType>::operator++(int) noexcept {
 template <typename Type>
 template <typename ValueType>
 ValueType& SingleLinkedList<Type>::BasicIterator<ValueType>::operator*() const noexcept {
+  assert(node_ != nullptr);
   return node_->value;
 }
 
 template <typename Type>
 template <typename ValueType>
 ValueType* SingleLinkedList<Type>::BasicIterator<ValueType>::operator->() const noexcept {
+  assert(node_ != nullptr);
   return &node_->value;
 }
 //--start of single list methods--
@@ -208,13 +210,8 @@ SingleLinkedList<Type>& SingleLinkedList<Type>::operator=(
 
 template <typename Type>
 void SingleLinkedList<Type>::swap(SingleLinkedList& another) noexcept {
-  Node* front_node_ptr = head_.next_node;
-  head_.next_node = another.head_.next_node;
-  another.head_.next_node = front_node_ptr;
-
-  size_t size_copy = size_;
-  size_ = another.size_;
-  another.size_ = size_copy;
+  std::swap(head_.next_node, another.head_.next_node);
+  std::swap(size_, another.size_);
 }
 
 template <typename Type>
@@ -287,6 +284,7 @@ void SingleLinkedList<Type>::PushFront(const Type& value) {
 
 template <typename Type>
 void SingleLinkedList<Type>::PopFront() noexcept {
+  if (IsEmpty()) return;
   Node* head_next_ptr = head_.next_node;
   head_.next_node = head_.next_node->next_node;
   delete head_next_ptr;
@@ -297,6 +295,7 @@ void SingleLinkedList<Type>::PopFront() noexcept {
 template <typename Type>
 SingleLinkedList<Type>::BasicIterator<Type> SingleLinkedList<Type>::InsertAfter(
     SingleLinkedList<Type>::BasicIterator<const Type> pos, const Type& value) {
+  assert(pos.node_ != nullptr);
   Node* new_node = new Node(value, pos.node_->next_node);
   pos.node_->next_node = new_node;
   ++size_;
@@ -305,6 +304,7 @@ SingleLinkedList<Type>::BasicIterator<Type> SingleLinkedList<Type>::InsertAfter(
 template <typename Type>
 SingleLinkedList<Type>::BasicIterator<Type> SingleLinkedList<Type>::EraseAfter(
     SingleLinkedList<Type>::BasicIterator<const Type> pos) noexcept {
+  assert(pos.node_ != nullptr);
   Node* node_to_delete = pos.node_->next_node;
   pos.node_->next_node = (pos.node_->next_node)->next_node;
   delete node_to_delete;
@@ -325,14 +325,11 @@ void SingleLinkedList<Type>::Clear() noexcept {
 template <typename Type>
 template <typename T>
 void SingleLinkedList<Type>::Initialize(T begin, T end, size_t size) {
-  SingleLinkedList reversed_copy;
-  for (auto it = begin; it != end; ++it) {
-    reversed_copy.PushFront(*it);
-  }
-
   SingleLinkedList copy;
-  for (auto it = reversed_copy.begin(); it != reversed_copy.end(); ++it) {
-    copy.PushFront(*it);
+  auto copy_it = copy.before_begin();
+  for (T it = begin; it != end; ++it) {
+    copy.InsertAfter(copy_it, *it);
+    ++copy_it;
   }
 
   copy.size_ = size;
